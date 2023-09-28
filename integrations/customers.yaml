@@ -34,7 +34,7 @@
     uri: "direct:get"
     steps:
       - set-body:
-          simple: "select * from orders where name='${header.name}'"
+          simple: "select * from customers where name='${header.name}'"
       - to: log:info
       - to: jdbc:camel
       - set-body:

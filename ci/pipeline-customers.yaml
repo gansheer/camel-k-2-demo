@@ -25,6 +25,7 @@ spec:
     - name: fetch-source
       taskRef:
         name: git-clone
+        kind: ClusterTask
       workspaces:
         - name: output
           workspace: shared-data
