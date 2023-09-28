@@ -1,0 +1,68 @@
+# camel-k: name=customers
+# camel-k: dependency=mvn:io.quarkus:quarkus-jdbc-postgresql
+# camel-k: build-property=quarkus.datasource.camel.db-kind=postgresql
+# camel-k: config=secret:acme-db
+# camel-k: trait=camel.runtime-version=2.16.0
+# camel-k: trait=route.host=acme-c.apps.ck-nightly-t13.fuse.integration-qe.com
+# camel-k: trait=route.enabled=true
+
+
+- rest:
+    get:
+      - to: "direct:get"
+        path: "/customers/{name}"
+      - to: "direct:getorders"
+        path: "/customers/{name}/orders"
+      - to: "direct:getall"
+        path: "/customers/"
+    post:
+      - to: "direct:post"
+        path: "/customers/"
+    delete:
+      - to: "direct:delete"
+        path: "/customers/{name}"
+- from:
+    uri: "direct:getall"
+    steps:
+      - set-body:
+          simple: "select * from customers"
+      - to: log:info
+      - to: jdbc:camel
+      - set-body:
+          simple: "${bodyAs(String)}"
+- from:
+    uri: "direct:get"
+    steps:
+      - set-body:
+          simple: "select * from orders where name='${header.name}'"
+      - to: log:info
+      - to: jdbc:camel
+      - set-body:
+          simple: "${bodyAs(String)}"
+- from:
+    uri: "direct:getorders"
+    steps:
+      - set-body:
+          simple: "select * from orders where customer='${header.name}'"
+      - to: log:info
+      - to: jdbc:camel
+      - set-body:
+          simple: "${bodyAs(String)}"
+- from:
+    uri: "direct:post"
+    steps:
+      - unmarshal:
+          json:
+            library: Jackson
+      - to: log:info
+      - set-body:
+          simple: "insert into customers (name, city) values ('${body[name]}', '${body[city]}')"
+      - to: jdbc:camel
+
+- from:
+    uri: "direct:delete"
+    steps:
+      - set-body:
+          simple: "delete from customers where name = '${header.name}'"
+      - to: log:info
+      - to: jdbc:camel

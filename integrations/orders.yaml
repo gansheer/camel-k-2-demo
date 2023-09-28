@@ -1,0 +1,56 @@
+# camel-k: name=orders
+# camel-k: dependency=mvn:io.quarkus:quarkus-jdbc-postgresql
+# camel-k: build-property=quarkus.datasource.camel.db-kind=postgresql
+# camel-k: config=secret:acme-db
+# camel-k: trait=camel.runtime-version=2.16.0
+# camel-k: trait=route.host=acme-commerce.apps.ck-nightly-t13.fuse.integration-qe.com
+# camel-k: trait=route.enabled=true
+
+- rest:
+    get:
+      - to: "direct:get"
+        path: "/orders/{id}"
+      - to: "direct:getall"
+        path: "/orders/"
+    post:
+      - to: "direct:post"
+        path: "/orders/"
+    delete:
+      - to: "direct:delete"
+        path: "/orders/{id}"
+- from:
+    uri: "direct:getall"
+    steps:
+      - set-body:
+          simple: "select * from orders"
+      - to: log:info
+      - to: jdbc:camel
+      - set-body:
+          simple: "${bodyAs(String)}"
+- from:
+    uri: "direct:get"
+    steps:
+      - set-body:
+          simple: "select * from orders where name='${header.id}'"
+      - to: log:info
+      - to: jdbc:camel
+      - set-body:
+          simple: "${bodyAs(String)}"
+- from:
+    uri: "direct:post"
+    steps:
+      - unmarshal:
+          json:
+            library: Jackson
+      - to: log:info
+      - set-body:
+          simple: "insert into orders (id, product, customer) values ('${body[id]}', '${body[product]}', '${body[customer]}')"
+      - to: jdbc:camel
+
+- from:
+    uri: "direct:delete"
+    steps:
+      - set-body:
+          simple: "delete from customers where name = '${header.name}'"
+      - to: log:info
+      - to: jdbc:camel
