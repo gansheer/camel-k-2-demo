@@ -1,0 +1,26 @@
+apiVersion: tekton.dev/v1beta1
+kind: PipelineRun
+metadata:
+  name: pipeline-customers-run
+spec:
+  pipelineRef:
+    name: pipeline-customers
+  taskRunSpecs:
+    - pipelineTaskName: kamel-run
+      taskServiceAccountName: camel-k-tekton
+  workspaces:
+  - name: shared-data
+    volumeClaimTemplate:
+      spec:
+        accessModes:
+        - ReadWriteOnce
+        resources:
+          requests:
+            storage: 1Gi
+  params:
+  - name: repo-url
+    value: https://github.com/gansheer/camel-k-2-demo.git
+  - name: repo-branch
+    value: main
+  - name: camel-k-version
+    value: 2.0.1

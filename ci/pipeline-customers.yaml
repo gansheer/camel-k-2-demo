@@ -1,0 +1,70 @@
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: pipeline-customers
+spec:
+  description: |
+    CI pipeline for customers microservice
+  params:
+    - name: repo-url
+      type: string
+      description: The git repo URL to clone from.
+    - name: repo-branch
+      type: string
+      description: The git repo branch.
+    - name: camel-k-version
+      type: string
+      description: Camel K operator version.
+  workspaces:
+    - name: shared-data
+      description: |
+        This workspace contains the cloned repo files, so they can be read by the
+        next task.
+  tasks:
+    # 1. checkout the code repository with the latest changes,
+    - name: fetch-source
+      taskRef:
+        name: git-clone
+      workspaces:
+        - name: output
+          workspace: shared-data
+      params:
+        - name: url
+          value: $(params.repo-url)
+        - name: revision
+          value: $(params.repo-branch)
+
+    # 2. release the Integration in our environment
+    - name: kamel-run
+      runAfter: ["fetch-source"]
+      taskRef:
+        name: kamel-run
+      workspaces:
+        - name: source
+          workspace: shared-data
+      params:
+        - name: filename
+          value: integrations/customers.yaml
+        - name: camel-k-image
+          value: "apache/camel-k:$(params.camel-k-version)"
+        - name: wait
+          value: "true"
+    # 3. run a complete suite of automated test,
+    - name: e2e-test
+      runAfter: ["kamel-run"]
+      workspaces:
+        - name: source
+          workspace: shared-data
+      params:
+        - name: service-name
+          value: "$(tasks.kamel-run.results.integration-name).$(context.taskRun.namespace)"
+      taskSpec:
+        params:
+          - name: service-name
+        steps:
+          - name: bash
+            image: alpine/curl
+            script: |
+              cd $(workspaces.source.path)
+              echo "$(params.service-name)"
+              ci/e2e-customers-test.sh $(params.service-name)
