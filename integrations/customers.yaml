@@ -2,7 +2,7 @@
 # camel-k: dependency=mvn:io.quarkus:quarkus-jdbc-postgresql
 # camel-k: build-property=quarkus.datasource.camel.db-kind=postgresql
 # camel-k: config=secret:acme-db
-# camel-k: trait=camel.runtime-version=2.16.0
+# camel-k: trait=camel.runtime-version=3.2.0
 # camel-k: trait=route.host=acme-c.apps.ck-nightly-t13.fuse.integration-qe.com
 # camel-k: trait=route.enabled=true
 
